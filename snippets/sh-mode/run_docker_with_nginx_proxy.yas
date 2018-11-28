@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: run_docker_with_nginx_proxy
+# key: drp
+# type: snippet
+# --
+
+NAME='$1'
+HOSTNAME="$NAME.docker-e9.ijs.si"
+
+docker run -d \\
+       --name "$NAME" \\
+       --restart unless-stopped \\
+       --env FORWARD_PORT=${3000} \\
+       --env LETSECRYPT_HOST="$HOST" \\
+       --env VIRTUAL_HOST="$HOST" \\
+       --env LETSENCRYPT_EMAIL='gregor.grasselli@ijs.si' \\
+       ${0:registry.docker-e9.ijs.si/$1}

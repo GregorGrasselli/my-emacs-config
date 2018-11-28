@@ -75,6 +75,15 @@
    multi-term-program "/usr/bin/zsh"
    multi-term-dedicated-select-after-open-p t))
 
+(use-package yasnippet
+  :ensure t
+  :config
+  (add-to-list
+   'yas-snippet-dirs
+   (concat (file-name-directory
+	    (or load-file-name buffer-file-name))
+	   "snippets")))
+
 ;; gettext
 (use-package po-mode
   :ensure t
@@ -125,18 +134,17 @@
 ;; spell checking
 (use-package flyspell
   :defer t
-  :init
+  :config
   (setenv
    "DICPATH"
    (string-join
     `(,(path-from-home
-	"/.config/libreoffice/4/user/uno_packages/cache/uno_packages/lu3045rtignw.tmp_/dict-en.oxt")
+  	"/.config/libreoffice/4/user/uno_packages/cache/uno_packages/lu3045rtignw.tmp_/dict-en.oxt")
       ,(path-from-home
-	"/.config/libreoffice/4/user/uno_packages/cache/uno_packages/lu3045rtignt.tmp_/pack-sl.oxt")
+  	"/.config/libreoffice/4/user/uno_packages/cache/uno_packages/lu3045rtignt.tmp_/pack-sl.oxt")
       "/usr/share/hunspell")
     ":"))
   (setq ispell-program-name "/usr/bin/hunspell")
-  :config
   (setq flyspell-use-meta-tab nil))
 
 ;; markdown
@@ -217,26 +225,29 @@
   ;; have 2 space indentation by default
   (setq js-indent-level 2)
 
-  ;; (use-package tern
-  ;;   :if (executable-find "tern")
-  ;;   :config
-  ;;   (defun my-js-mode-hook ()
-  ;;     "Hook for `js-mode'."
-  ;;     (set (make-local-variable 'company-backends)
-  ;;          '((company-tern company-files company-yasnippet))))
-  ;;   (add-hook 'js2-mode-hook 'my-js-mode-hook)
-  ;;   (setq js2-include-node-externs t)
-  ;;   (add-hook 'js2-mode-hook 'tern-mode)
+  (use-package tern
+    :ensure t
+    :if (executable-find "tern")
+    :config
+    (defun my-js-mode-hook ()
+      "Hook for `js-mode'."
+      (set (make-local-variable 'company-backends)
+           '((company-tern company-files company-yasnippet))))
+    (add-hook 'js2-mode-hook 'my-js-mode-hook)
+    (setq js2-include-node-externs t)
+    (add-hook 'js2-mode-hook 'tern-mode)
 
-  ;;   (use-package company-tern
-  ;;     ;:if (executable-find "tern")
-  ;;     :config
-  ;;     ;; Disable completion keybindings, as we use xref-js2 instead
-  ;;     (define-key tern-mode-keymap (kbd "M-.") nil)
-  ;;     (define-key tern-mode-keymap (kbd "M-,") nil)
-  ;;     (add-hook 'js2-mode-hook 'company-mode)))
+    (use-package company-tern
+      :ensure t
+      ;:if (executable-find "tern")
+      :config
+      ;; Disable completion keybindings, as we use xref-js2 instead
+      (define-key tern-mode-keymap (kbd "M-.") nil)
+      (define-key tern-mode-keymap (kbd "M-,") nil)
+      (add-hook 'js2-mode-hook 'company-mode)))
 
   (use-package js2-refactor
+    :ensure t
     ;:diminish js2-refactor-mode "𝐉𝐫"
     :bind
     (:map js2-mode-map
@@ -247,6 +258,7 @@
   (add-hook 'js2-mode-hook 'js2-refactor-mode)
 
   (use-package xref-js2
+    :ensure t
     :config
 
     ;; js-mode (which js2 is based on) binds "M-." which conflicts with xref, so
@@ -258,6 +270,7 @@
 		(add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
 
   (use-package indium
+    :ensure t
     :config (add-hook 'js2-mode-hook 'indium-interaction-mode)))
 
 ;; coffee script
@@ -514,13 +527,15 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (color-theme-sanityinc-solarized org po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 indium ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider ghc ghc-imported-from haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex auctex elpy smex)))
+    (indium color-theme-sanityinc-solarized org po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider ghc ghc-imported-from haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex auctex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
  '(safe-local-variable-values
    (quote
-    ((cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
+    ((js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
+     (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$")
+     (cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
          (figwheel-sidecar.repl-api/start-figwheel!)
          (figwheel-sidecar.repl-api/cljs-repl))")
      (cider-cljs-lein-repl . "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
