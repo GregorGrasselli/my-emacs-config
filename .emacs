@@ -19,6 +19,7 @@
 (setq inhibit-startup-screen t)
 (setq ring-bell-function 'ignore)
 (setq shell-command-switch "-ic")
+(setq executable-prefix-env t)
 (tool-bar-mode -1)
 (show-paren-mode t)
 (setq show-paren-delay 0)
@@ -81,7 +82,8 @@
   (add-to-list
    'yas-snippet-dirs
    (concat (file-name-directory
-	    (or load-file-name buffer-file-name))
+	    (file-truename
+	     (or load-file-name buffer-file-name)))
 	   "snippets")))
 
 ;; gettext
