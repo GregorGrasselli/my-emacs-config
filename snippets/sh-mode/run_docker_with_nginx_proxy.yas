@@ -4,7 +4,7 @@
 # type: snippet
 # --
 
-NAME='${1:`(file-name-nondirectory (buffer-name-sans-extension buffer-file-name))`}'
+NAME='${1:`(file-name-nondirectory (file-name-sans-extension buffer-file-name))`}'
 HOSTNAME="$NAME.docker-e9.ijs.si"
 
 docker run -d \\
