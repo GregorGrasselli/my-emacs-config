@@ -5,13 +5,15 @@
 # --
 
 NAME='${1:`(file-name-nondirectory (file-name-sans-extension buffer-file-name))`}'
-HOSTNAME="$NAME.docker-e9.ijs.si"
+HOST="$NAME.docker-e9.ijs.si"
 
 docker run -d \\
        --name "$NAME" \\
        --restart unless-stopped \\
        --env FORWARD_PORT=${2:3000} \\
-       --env LETSECRYPT_HOST="$HOST" \\
        --env VIRTUAL_HOST="$HOST" \\
+       --env LETSENCRYPT_HOST="$HOST" \\
        --env LETSENCRYPT_EMAIL='gregor.grasselli@ijs.si' \\
        ${3:registry.docker-e9.ijs.si/$1}
+
+$0

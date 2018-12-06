@@ -19,6 +19,7 @@
 (setq inhibit-startup-screen t)
 (setq ring-bell-function 'ignore)
 (setq shell-command-switch "-ic")
+(setq desktop-files-not-to-save "^$")
 (setq executable-prefix-env t)
 (tool-bar-mode -1)
 (show-paren-mode t)
@@ -361,7 +362,6 @@
   (add-hook 'LaTeX-mode-hook (lambda () (TeX-fold-mode 1)))
   (add-hook 'LaTeX-mode-hook 'outline-minor-mode)
   (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
-  (add-hook 'LaTeX-mode-hook 'server-start)
   (setq TeX-source-correlate-start-server t)
   (setq TeX-PDF-mode t)
   (setq TeX-view-program-selection
@@ -412,6 +412,10 @@
 	(if message
 	    (princ message)
 	  (pyvenv-activate venv))))
+
+    (add-to-list
+     'elpy-project-root-finder-functions
+     (lambda () (locate-dominating-file default-directory "Pipfile")))
 
     (setq elpy-rpc-backend "jedi")))
 
