@@ -14,6 +14,7 @@
 (add-hook 'package-menu-mode-hook 'hl-line-mode)
 (put 'narrow-to-region 'disabled nil)
 (put 'erase-buffer 'disabled nil)
+(set-file-name-coding-system 'utf-8)
 
 
 (setq inhibit-startup-screen t)
@@ -61,18 +62,18 @@
   (defun buffer-term-mode-p (b)
     (equal 'term-mode (buffer-local-value 'major-mode b)))
 
-  (defun switch-to-terminal ()
-    (interactive)
+  (defun switch-to-terminal (new)
+    (interactive "P")
     (require 'seq)
     (let ((terminals (mapcar #'buffer-name
 			     (seq-filter #'buffer-term-mode-p
 					 (buffer-list)))))
-      (if terminals
-	  (switch-to-buffer
+      (if (or (not terminals) new)
+	  (multi-term)
+	(switch-to-buffer
 	   (completing-read
 	    (format "Terminal name (default %s): " (car terminals))
-	    terminals nil t nil nil (car terminals)))
-	(multi-term))))
+	    terminals nil t nil nil (car terminals))))))
   (setq
    multi-term-program "/usr/bin/zsh"
    multi-term-dedicated-select-after-open-p t))
@@ -227,7 +228,7 @@
   :config
   ;; have 2 space indentation by default
   (setq js-indent-level 2)
-
+  (setq-default js2-strict-trailing-comma-warning nil)
   (use-package tern
     :ensure t
     :if (executable-find "tern")
@@ -329,6 +330,10 @@
     :ensure t)
   (use-package ghc-imported-from
     :ensure t)
+  (use-package intero
+    :ensure t
+    :config
+    (intero-global-mode 1))
   (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
   (add-hook 'haskell-mode-hook 'haskell-doc-mode)
   (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
@@ -533,7 +538,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (indium color-theme-sanityinc-solarized org po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider ghc ghc-imported-from haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex auctex elpy smex)))
+    (intero indium color-theme-sanityinc-solarized org po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider ghc ghc-imported-from haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex auctex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)

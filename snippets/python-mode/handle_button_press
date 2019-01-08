@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: handle_button_press
+# key: handle
+# --
+@defmethod(handle_button_press, '$1')
+def handle_${1:$(replace-regexp-in-string "-" "_" yas-text)}(button_data, language, room_id):
+    ${2:$$(yas-choose-value '("_ = translations.get_translations_function(language)\n    " ""))}$0
