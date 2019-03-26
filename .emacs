@@ -11,7 +11,6 @@
 (electric-indent-mode -1)
 (global-set-key (kbd "<M-dead-circumflex>") 'delete-indentation)
 (setq sort-fold-case t)
-(add-hook 'package-menu-mode-hook 'hl-line-mode)
 (put 'narrow-to-region 'disabled nil)
 (put 'erase-buffer 'disabled nil)
 (set-file-name-coding-system 'utf-8)
@@ -29,6 +28,7 @@
 (global-set-key (kbd "C-š") 'hippie-expand)
 (global-set-key (kbd "C-c o") 'other-frame)
 (global-set-key (kbd "C-c q") 'save-buffers-kill-emacs)
+(fset 'yes-or-no-p 'y-or-n-p)
 
 (windmove-default-keybindings)
 ;; remove more csi escapes from the output to make ipython console
@@ -53,6 +53,16 @@
    '(company-preview-if-just-one-frontend
      company-echo-metadata-frontend
      company-echo-frontend)))
+
+(use-package paradox
+  :ensure t
+  :config
+  (paradox-enable))
+
+(use-package move-text
+  :ensure t
+  :config
+  (move-text-default-bindings))
 
 
 (use-package multi-term
@@ -118,8 +128,8 @@
 	  (or-rgx "\\|"))
       (setq dired-omit-files
 	    (if (member hidden-file-regex alternatives)
-		(string-join (remove hidden-file-regex alternatives) or-rgx)
-	      (string-join (cons hidden-file-regex alternatives) or-rgx)))
+		(mapconcat #'identity (remove hidden-file-regex alternatives) or-rgx)
+	      (mapconcat #'identity (cons hidden-file-regex alternatives) or-rgx)))
       (dired-omit-mode -1)
       (dired-omit-mode 1)))
 
@@ -148,8 +158,8 @@
   	"/.config/libreoffice/4/user/uno_packages/cache/uno_packages/lu3045rtignt.tmp_/pack-sl.oxt")
       "/usr/share/hunspell")
     ":"))
-  (setq ispell-program-name "/usr/bin/hunspell")
-  (setq flyspell-use-meta-tab nil))
+  (setq ispell-program-name "/usr/bin/hunspell"
+	flyspell-use-meta-tab nil))
 
 ;; markdown
 ;; copied from https://jblevins.org/projects/markdown-mode/
@@ -302,6 +312,7 @@
   :defer t
   :config
   (add-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'clojure-mode-hook 'eldoc-mode)
 
   (use-package clj-refactor
     :ensure t
@@ -326,26 +337,23 @@
   :ensure t
   :defer t
   :config
-  (use-package ghc
-    :ensure t)
-  (use-package ghc-imported-from
-    :ensure t)
   (use-package intero
     :ensure t
     :config
     (intero-global-mode 1))
   (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
   (add-hook 'haskell-mode-hook 'haskell-doc-mode)
-  (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
-  (setq haskell-process-args-ghci
-          '("-ferror-spans" "-fshow-loaded-modules"))
-  (setq haskell-process-args-cabal-repl
-	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
-  (setq haskell-process-args-stack-ghci
-	'("--ghci-options=-ferror-spans -fshow-loaded-modules"
-	  "--no-build" "--no-load"))
-  (setq haskell-process-args-cabal-new-repl
-	'("--ghc-options=-ferror-spans -fshow-loaded-modules")))
+  ;; (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+  ;; (setq haskell-process-args-ghci
+  ;;         '("-ferror-spans" "-fshow-loaded-modules"))
+  ;; (setq haskell-process-args-cabal-repl
+  ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
+  ;; (setq haskell-process-args-stack-ghci
+  ;; 	'("--ghci-options=-ferror-spans -fshow-loaded-modules"
+  ;; 	  "--no-build" "--no-load"))
+  ;; (setq haskell-process-args-cabal-new-repl
+  ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
+  )
 
 (use-package ess
   :ensure t
@@ -538,7 +546,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (intero indium color-theme-sanityinc-solarized org po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider ghc ghc-imported-from haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex auctex elpy smex)))
+    (move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
