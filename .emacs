@@ -13,7 +13,13 @@
 (setq sort-fold-case t)
 (put 'narrow-to-region 'disabled nil)
 (put 'erase-buffer 'disabled nil)
-(set-file-name-coding-system 'utf-8)
+
+(fset 'copy-buffer-contents-return-point
+   (lambda (&optional arg)
+     "Keyboard macro."
+     (interactive "p")
+     (kmacro-exec-ring-item
+      (quote ([24 104 134217847 21 67108896 21 67108896] 0 "%d")) arg)))
 
 
 (setq inhibit-startup-screen t)
@@ -28,7 +34,10 @@
 (global-set-key (kbd "C-š") 'hippie-expand)
 (global-set-key (kbd "C-c o") 'other-frame)
 (global-set-key (kbd "C-c q") 'save-buffers-kill-emacs)
-(fset 'yes-or-no-p 'y-or-n-p)
+;; (fset 'yes-or-no-p 'y-or-n-p)
+
+(set-file-name-coding-system 'utf-8)
+
 
 (windmove-default-keybindings)
 ;; remove more csi escapes from the output to make ipython console
@@ -45,6 +54,30 @@
 (define-coding-system-alias 'utf8 'utf-8)
 (define-coding-system-alias 'UTF-8 'utf-8)
 (define-coding-system-alias 'UTF8 'utf-8)
+
+;;; calendar
+(setq calendar-week-start-day 1
+      holiday-general-holidays nil
+      holiday-local-holidays
+      '((holiday-fixed 1 1 "New Year's Day")
+	(holiday-fixed 1 2 "New Year holiday")
+	(holiday-fixed 2 8 "Prešeren Day")
+	(holiday-fixed 4 21 "Easter Sunday")
+	(holiday-fixed 4 22 "Easter Monday")
+	(holiday-fixed 4 27 "Day of Uprising Against Occupation")
+	(holiday-fixed 5 1 "Labor Day / May Day")
+	(holiday-fixed 5 2 "Labour Day holiday")
+	(holiday-fixed 6 9 "Whit Sunday")
+	(holiday-fixed 6 25 "Statehood Day")
+	(holiday-fixed 8 15 "Assumption of Mary")
+	(holiday-fixed 10 31 "Reformation Day")
+	(holiday-fixed 11 1 "Remembrance Day")
+	(holiday-fixed 12 25 "Christmas Day")
+	(holiday-fixed 12 26 "Independence and Unity Day"))
+      holiday-bahai-holidays nil
+      holiday-hebrew-holidays nil
+      holiday-islamic-holidays nil
+      holiday-oriental-holidays nil)
 
 (use-package company
   :ensure t
@@ -147,7 +180,6 @@
 
 ;; spell checking
 (use-package flyspell
-  :defer t
   :config
   (setenv
    "DICPATH"
@@ -183,7 +215,7 @@
   ;; (global-set-key "\C-ca" 'org-agenda)
   ;; (global-set-key "\C-cc" 'org-capture)
   ;; (global-set-key "\C-cb" 'org-iswitchb)
-  
+
   ;; (defun add-slovenian-translations ()
   ;;   (let ((sl-tr '(("Author" (:default "Avtor"))
   ;; 		 ("Date" (:default "Datum"))
@@ -202,9 +234,9 @@
   ;; 				     (cdr l)))
   ;; 		      l))
   ;; 		  org-export-dictionary))))
-  
+
   ;;(add-hook 'org-mode-hook #'add-slovenian-translations)
-  
+
 
 ;; web mode
 (use-package web-mode
