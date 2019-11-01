@@ -132,9 +132,9 @@
 	   "snippets")))
 
 ;; gettext
-(use-package po-mode
-  :ensure t
-  :mode "\\.po\\'\\|\\.po\\.")
+;; (use-package po-mode
+;;   :ensure t
+;;   :mode "\\.po\\'\\|\\.po\\.")
 
 ;; direx
 (use-package direx
@@ -197,11 +197,17 @@
 ;; copied from https://jblevins.org/projects/markdown-mode/
 (use-package markdown-mode
   :ensure t
+  :defer t
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))
+
+;;; yaml
+(use-package yaml-mode
+  :ensure t
+  :defer t)
 
 ;; org-mode
 (use-package org
@@ -262,6 +268,8 @@
 ;; javascript
 ;; xref-js2 requires the silver searcher (ag) to be installed
 (use-package js2-mode
+  :ensure t
+  :defer t
   :mode
   (("\\.js$" . js2-mode)
    ("\\.jsx$" . js2-jsx-mode))
@@ -387,9 +395,9 @@
   ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
   )
 
-(use-package ess
-  :ensure t
-  :defer t)
+;; (use-package ess
+;;   :ensure t
+;;   :defer t)
 
 ;; latex
 (use-package tex-mode
@@ -578,7 +586,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
+    (tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
