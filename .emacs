@@ -3,7 +3,8 @@
 
 
 (setq package-archives
-      '(("melpa" . "https://stable.melpa.org/packages/")
+      '(("melpa-stable" . "https://stable.melpa.org/packages/")
+	("melpa" . "https://melpa.org/packages/")
 	("elpy" . "https://jorgenschaefer.github.io/packages/")
 	("gnu" . "http://elpa.gnu.org/packages/")))
 (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
@@ -142,6 +143,13 @@
   :config
   (global-set-key (kbd "C-c d d") 'direx:jump-to-directory-other-window)
   (global-set-key (kbd "C-c d p") 'direx-project:jump-to-project-root))
+
+;; projectile
+(use-package projectile
+  :ensure t
+  :config
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1))
 
 ;; dired
 (use-package dired
@@ -363,14 +371,15 @@
     :ensure t
     :config
     (add-hook 'cider-repl-mode-hook 'paredit-mode)
-    (setq cider-default-repl-command "boot")
-    (setq cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]")
 
     (defun cider-test-luminus-test-infer-ns (x)
       (let ((parts (split-string x "\\.")))
 	(string-join `(,(car parts) "test" ,@(cdr parts)) ".")))
 
-    (setq cider-test-infer-test-ns #'cider-test-luminus-test-infer-ns)))
+    (setq cider-default-repl-command "boot"
+	  cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]"
+	  cider-test-infer-test-ns (lambda (x) (concat x "-test"))
+	  cider-repl-prompt-function 'cider-repl-prompt-abbreviated)))
 
 ;;; haskell
 (use-package haskell-mode
@@ -444,33 +453,38 @@
 
 
 ;; python
-(use-package python
+(use-package elpy
   :defer t
+  :ensure t
+  :init
+  (advice-add 'python-mode :before 'elpy-enable)
   :config
-  (use-package elpy
-    :ensure t
-    :config
-    (elpy-enable)
-    ;; (add-hook 'python-mode-hook #'elpy-use-ipython t)
+  ;; (add-hook 'python-mode-hook #'elpy-use-ipython t)
 
-    (defun pipenv-enable ()
-      "Activate the virtual environment returned by `pipenv --venv'."
-      (interactive)
-      (let* ((cmd-output (split-string
-			  (shell-command-to-string "pipenv --venv")))
-	     (message (if (< 1 (length cmd-output))
-			  (string-join (butlast cmd-output) ?\n)
-			nil))
-	     (venv (car (last cmd-output))))
-	(if message
-	    (princ message)
-	  (pyvenv-activate venv))))
+  (defun pipenv-enable ()
+    "Activate the virtual environment returned by `pipenv --venv'."
+    (interactive)
+    (let* ((cmd-output (split-string
+			(shell-command-to-string "pipenv --venv")))
+	   (message (if (< 1 (length cmd-output))
+			(string-join (butlast cmd-output) ?\n)
+		      nil))
+	   (venv (car (last cmd-output))))
+      (if message
+	  (princ message)
+	(pyvenv-activate venv))))
 
-    (add-to-list
-     'elpy-project-root-finder-functions
-     (lambda () (locate-dominating-file default-directory "Pipfile")))
+  (add-to-list
+   'elpy-project-root-finder-functions
+   (lambda () (locate-dominating-file default-directory "Pipfile")))
 
-    (setq elpy-rpc-backend "jedi")))
+  (setq elpy-rpc-backend "jedi"
+	elpy-rpc-virtualenv-path 'current))
+
+;;; inflection
+(use-package string-inflection
+  :ensure t
+  :bind ("C-c i" . 'string-inflection-all-cycle))
 
 
 ;; ruby
@@ -529,6 +543,7 @@
  '(elpy-modules
    (quote
     (elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults)))
+ '(elpy-rpc-virtualenv-path (quote current))
  '(elpy-shell-capture-last-multiline-output t)
  '(elpy-shell-echo-input nil)
  '(exec-path
@@ -586,13 +601,14 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
+    (string-inflection projectile tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
  '(safe-local-variable-values
    (quote
-    ((js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
+    ((cider-clojure-cli-global-options . -O:default-jvm-opts)
+     (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$")
      (cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
          (figwheel-sidecar.repl-api/start-figwheel!)
