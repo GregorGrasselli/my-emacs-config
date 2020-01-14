@@ -106,13 +106,7 @@
 
 (use-package yasnippet
   :ensure t
-  :config
-  (add-to-list
-   'yas-snippet-dirs
-   (concat (file-name-directory
-	    (file-truename
-	     (or load-file-name buffer-file-name)))
-	   "snippets")))
+  :defer t)
 
 ;; gettext
 ;; (use-package po-mode
