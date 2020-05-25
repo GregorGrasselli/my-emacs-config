@@ -50,6 +50,7 @@
 
 (add-to-list 'load-path "/usr/share/emacs/site-lisp/")
 
+(setq-default indent-tabs-mode nil)
 
 ;; utf-8 aliases
 (define-coding-system-alias 'utf8 'utf-8)
@@ -63,12 +64,9 @@
       '((holiday-fixed 1 1 "New Year's Day")
 	(holiday-fixed 1 2 "New Year holiday")
 	(holiday-fixed 2 8 "Prešeren Day")
-	(holiday-fixed 4 21 "Easter Sunday")
-	(holiday-fixed 4 22 "Easter Monday")
 	(holiday-fixed 4 27 "Day of Uprising Against Occupation")
 	(holiday-fixed 5 1 "Labor Day / May Day")
 	(holiday-fixed 5 2 "Labour Day holiday")
-	(holiday-fixed 6 9 "Whit Sunday")
 	(holiday-fixed 6 25 "Statehood Day")
 	(holiday-fixed 8 15 "Assumption of Mary")
 	(holiday-fixed 10 31 "Reformation Day")
@@ -201,6 +199,11 @@
   (setq ispell-program-name "/usr/bin/hunspell"
 	flyspell-use-meta-tab nil))
 
+;; Docker
+(use-package dockerfile-mode
+  :ensure t
+  :defer t)
+
 ;; markdown
 ;; copied from https://jblevins.org/projects/markdown-mode/
 (use-package markdown-mode
@@ -214,6 +217,11 @@
 
 ;;; yaml
 (use-package yaml-mode
+  :ensure t
+  :defer t)
+
+;;; jenkinsfile
+(use-package groovy-mode
   :ensure t
   :defer t)
 
@@ -252,12 +260,17 @@
   ;;(add-hook 'org-mode-hook #'add-slovenian-translations)
 
 
+(use-package gnuplot
+  :defer t
+  :ensure t)
+
 ;; web mode
 (use-package web-mode
   :ensure t
   :mode "\\.html?\\'"
   :config
-  (setq web-mode-engine "selmer"))
+  (setq web-mode-engine "selmer"
+	indent-tabs-mode nil))
 
 ;; rust
 (use-package rust-mode
@@ -273,67 +286,18 @@
   (add-hook 'racer-mode-hook #'eldoc-mode)
   (add-hook 'racer-mode-hook #'company-mode))
 
-;; javascript
-;; xref-js2 requires the silver searcher (ag) to be installed
-(use-package js2-mode
+;; json
+(use-package json-mode
   :ensure t
   :defer t
-  :mode
-  (("\\.js$" . js2-mode)
-   ("\\.jsx$" . js2-jsx-mode))
-  :bind (:map js2-mode-map
-	      ("C-c C-l" . indium-eval-buffer))
   :config
-  ;; have 2 space indentation by default
-  (setq js-indent-level 2)
-  (setq-default js2-strict-trailing-comma-warning nil)
-  (use-package tern
-    :ensure t
-    :if (executable-find "tern")
-    :config
-    (defun my-js-mode-hook ()
-      "Hook for `js-mode'."
-      (set (make-local-variable 'company-backends)
-           '((company-tern company-files company-yasnippet))))
-    (add-hook 'js2-mode-hook 'my-js-mode-hook)
-    (setq js2-include-node-externs t)
-    (add-hook 'js2-mode-hook 'tern-mode)
+  (setq js-indent-level 2))
 
-    (use-package company-tern
-      :ensure t
-      ;:if (executable-find "tern")
-      :config
-      ;; Disable completion keybindings, as we use xref-js2 instead
-      (define-key tern-mode-keymap (kbd "M-.") nil)
-      (define-key tern-mode-keymap (kbd "M-,") nil)
-      (add-hook 'js2-mode-hook 'company-mode)))
-
-  (use-package js2-refactor
-    :ensure t
-    ;:diminish js2-refactor-mode "𝐉𝐫"
-    :bind
-    (:map js2-mode-map
-          ("C-k" . js2r-kill)
-          ("C-c h r" . js2-refactor-hydra/body))
-    :config
-    (js2r-add-keybindings-with-prefix "C-c C-r"))
-  (add-hook 'js2-mode-hook 'js2-refactor-mode)
-
-  (use-package xref-js2
-    :ensure t
-    :config
-
-    ;; js-mode (which js2 is based on) binds "M-." which conflicts with xref, so
-    ;; unbind it.
-    (define-key js-mode-map (kbd "M-.") nil)
-
-    (add-hook 'js2-mode-hook
-	      (lambda ()
-		(add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
-
-  (use-package indium
-    :ensure t
-    :config (add-hook 'js2-mode-hook 'indium-interaction-mode)))
+;; typescript
+(use-package tide
+  :ensure t
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup) (before-save . tide-format-before-save)))
 
 ;; coffee script
 (use-package coffee-mode
@@ -376,8 +340,7 @@
       (let ((parts (split-string x "\\.")))
 	(string-join `(,(car parts) "test" ,@(cdr parts)) ".")))
 
-    (setq cider-default-repl-command "boot"
-	  cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]"
+    (setq cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]"
 	  cider-test-infer-test-ns (lambda (x) (concat x "-test"))
 	  cider-repl-prompt-function 'cider-repl-prompt-abbreviated)))
 
@@ -386,10 +349,6 @@
   :ensure t
   :defer t
   :config
-  (use-package intero
-    :ensure t
-    :config
-    (intero-global-mode 1))
   (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
   (add-hook 'haskell-mode-hook 'haskell-doc-mode)
   ;; (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
@@ -404,9 +363,23 @@
   ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
   )
 
-;; (use-package ess
-;;   :ensure t
-;;   :defer t)
+(use-package dante
+  :ensure t
+  :after haskell-mode
+  :commands 'dante-mode
+  :init
+  (add-hook 'haskell-mode-hook 'flycheck-mode)
+  (add-hook 'haskell-mode-hook 'dante-mode)
+  (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+  :config
+  (setq flymake-no-changes-timeout nil
+	flymake-start-syntax-check-on-newline nil
+	flycheck-check-syntax-automatically '(save mode-enabled))
+  )
+
+(use-package ess
+  :ensure t
+  :defer t)
 
 ;; latex
 (use-package tex-mode
@@ -601,13 +574,15 @@
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
    (quote
-    (string-inflection projectile tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
+    (groovy-mode json-mode tide gnuplot intero dante string-inflection projectile tern js2-mode move-text paradox indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
  '(safe-local-variable-values
    (quote
-    ((cider-clojure-cli-global-options . -O:default-jvm-opts)
+    ((case-fold-search)
+     (ispell-dictionary . slovenian)
+     (cider-clojure-cli-global-options . -O:default-jvm-opts)
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$")
      (cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
@@ -621,15 +596,16 @@
      (web-mode-engine . "selmer")
      (eval
       (lambda nil
-	(when
-	    (string=
-	     (file-name-extension buffer-file-name)
-	     "html")
-	  (web-mode)))))))
+        (when
+            (string=
+             (file-name-extension buffer-file-name)
+             "html")
+          (web-mode)))))))
  '(send-mail-function (quote smtpmail-send-it))
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
+ '(typescript-indent-level 2)
  '(vc-annotate-background nil)
  '(vc-annotate-color-map
    (quote
