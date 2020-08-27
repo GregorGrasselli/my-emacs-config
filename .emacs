@@ -501,20 +501,20 @@
     "Activate the virtual environment poetry uses for the project."
     (interactive)
     (require 'seq)
-    (let* ((cmd-output (split-string (shell-command-to-string "poetry show -v") "\n"))
-	   (virtual-env-line (car (seq-filter (lambda (line) (string-match-p "^Using virtualenv: " line)) cmd-output)))
-	   (virtual-env (substring virtual-env-line (length "Using virtualenv: "))))
+    (let* ((virtual-env-python (shell-command-to-string "poetry run which python | tail -n 1"))
+	   (virtual-env (substring virtual-env-python 0 (- (length virtual-env-python) (length "/bin/python")))))
       (pyvenv-deactivate)
       (pyvenv-activate virtual-env))
     (elpy-rpc-restart))
-  
+
 
   (add-to-list
    'elpy-project-root-finder-functions
    (lambda () (locate-dominating-file default-directory "Pipfile")))
 
   (setq elpy-rpc-backend "jedi"
-	elpy-rpc-virtualenv-path 'current))
+	elpy-rpc-virtualenv-path 'current
+	elpy-rpc-timeout 5))
 
 ;;; inflection
 (use-package string-inflection
