@@ -15,13 +15,9 @@
 (put 'narrow-to-region 'disabled nil)
 (put 'erase-buffer 'disabled nil)
 
-(fset 'copy-buffer-contents-return-point
-   (lambda (&optional arg)
-     "Keyboard macro."
-     (interactive "p")
-     (kmacro-exec-ring-item
-      (quote ([24 104 134217847 21 67108896 21 67108896] 0 "%d")) arg)))
-
+(defun copy-buffer-file-name ()
+  (interactive)
+  (kill-new (file-name-nondirectory (buffer-file-name))))
 
 (setq inhibit-startup-screen t)
 (setq ring-bell-function 'ignore)
@@ -296,8 +292,12 @@
 ;; typescript
 (use-package tide
   :ensure t
-  :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . tide-setup) (before-save . tide-format-before-save)))
+  :hook ((typescript-mode . tide-setup)
+         (before-save . tide-format-before-save)
+         (typescript-mode . company-mode)
+         (typescript-mode . flycheck-mode))
+  :config
+  (setq tide-tsserver-process-environment '("TSS_LOG=-level verbose -file /home/gregor/tss.log")))
 
 ;; coffee script
 (use-package coffee-mode
@@ -446,6 +446,16 @@
       (if message
 	  (princ message)
 	(pyvenv-activate venv))))
+  
+  (defun poetry-enable ()
+    "Activate the virtual environment poetry uses for the project."
+    (interactive)
+    (require 'seq)
+    (pyvenv-deactivate)
+    (let* ((virtual-env-python (shell-command-to-string "poetry run which python | tail -n 1"))
+	   (virtual-env (substring virtual-env-python 0 (- (length virtual-env-python) (length "/bin/python")))))
+      (pyvenv-activate virtual-env))
+    (elpy-rpc-restart))
 
   (add-to-list
    'elpy-project-root-finder-functions
@@ -504,62 +514,54 @@
  '(ansi-color-for-comint-mode t)
  '(ansi-color-names-vector
    ["#2d3743" "#ff4242" "#74af68" "#dbdb95" "#34cae2" "#008b8b" "#00ede1" "#e1e1e0"])
- '(compilation-message-face (quote default))
+ '(compilation-message-face 'default)
  '(cua-global-mark-cursor-color "#2aa198")
  '(cua-normal-cursor-color "#839496")
  '(cua-overwrite-cursor-color "#b58900")
  '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes (quote (sanityinc-solarized-dark)))
+ '(custom-enabled-themes '(sanityinc-solarized-dark))
  '(custom-safe-themes
-   (quote
-    ("4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" default)))
+   '("4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" default))
  '(elpy-modules
-   (quote
-    (elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults)))
- '(elpy-rpc-virtualenv-path (quote current))
+   '(elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults))
+ '(elpy-rpc-virtualenv-path 'current)
  '(elpy-shell-capture-last-multiline-output t)
  '(elpy-shell-echo-input nil)
  '(exec-path
-   (quote
-    ("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin" "/usr/lib/jvm/default/bin" "/usr/bin/site_perl" "/usr/bin/vendor_perl" "/usr/bin/core_perl" "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu" "/home/gregor/bin")))
+   '("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin" "/usr/lib/jvm/default/bin" "/usr/bin/site_perl" "/usr/bin/vendor_perl" "/usr/bin/core_perl" "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu" "/home/gregor/bin"))
  '(fci-rule-color "#073642")
  '(grep-command "grep --color -nH -E ")
- '(grep-find-command
-   (quote
-    ("find . -type f -exec grep --color -nH -E  {} +" . 42)))
+ '(grep-find-command '("find . -type f -exec grep --color -nH -E  {} +" . 42))
  '(grep-find-template "find <D> <X> -type f <F> -exec grep <C> -nH -E <R> {} +")
- '(grep-highlight-matches (quote auto))
+ '(grep-highlight-matches 'auto)
  '(grep-template "grep <X> <C> -nH -E <R> <F>")
  '(grep-use-null-device nil)
- '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
+ '(highlight-changes-colors '("#d33682" "#6c71c4"))
  '(highlight-symbol-colors
    (--map
     (solarized-color-blend it "#002b36" 0.25)
-    (quote
-     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
+    '("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2")))
  '(highlight-symbol-foreground-color "#93a1a1")
  '(highlight-tail-colors
-   (quote
-    (("#073642" . 0)
+   '(("#073642" . 0)
      ("#546E00" . 20)
      ("#00736F" . 30)
      ("#00629D" . 50)
      ("#7B6000" . 60)
      ("#8B2C02" . 70)
      ("#93115C" . 85)
-     ("#073642" . 100))))
+     ("#073642" . 100)))
  '(hl-bg-colors
-   (quote
-    ("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00")))
+   '("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00"))
  '(hl-fg-colors
-   (quote
-    ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
+   '("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36"))
  '(magit-diff-use-overlays nil)
+ '(mode-line-format
+   '("%e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote mode-line-frame-identification mode-line-buffer-identification "   " mode-line-position "  " mode-line-modes mode-line-misc-info mode-line-end-spaces))
  '(nxml-slash-auto-complete-flag t)
- '(org-agenda-files (quote ("~/Documents/asistenti/code/todos.org")))
+ '(org-agenda-files '("~/Documents/asistenti/code/todos.org"))
  '(org-babel-load-languages
-   (quote
-    ((emacs-lisp . t)
+   '((emacs-lisp . t)
      (shell . t)
      (awk . t)
      (haskell . t)
@@ -570,17 +572,15 @@
      (gnuplot . t)
      (latex . t)
      (calc . t)
-     (R . t))))
- '(org-export-backends (quote (ascii html icalendar latex md odt)))
+     (R . t)))
+ '(org-export-backends '(ascii html icalendar latex md odt))
  '(package-selected-packages
-   (quote
-    (groovy-mode json-mode tide gnuplot intero dante string-inflection projectile tern js2-mode move-text paradox indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
+   '(groovy-mode json-mode tide gnuplot intero dante string-inflection projectile tern js2-mode move-text paradox indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
  '(safe-local-variable-values
-   (quote
-    ((case-fold-search)
+   '((case-fold-search)
      (ispell-dictionary . slovenian)
      (cider-clojure-cli-global-options . -O:default-jvm-opts)
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
@@ -600,16 +600,15 @@
             (string=
              (file-name-extension buffer-file-name)
              "html")
-          (web-mode)))))))
- '(send-mail-function (quote smtpmail-send-it))
+          (web-mode))))))
+ '(send-mail-function 'smtpmail-send-it)
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
  '(typescript-indent-level 2)
  '(vc-annotate-background nil)
  '(vc-annotate-color-map
-   (quote
-    ((20 . "#dc322f")
+   '((20 . "#dc322f")
      (40 . "#cb4b16")
      (60 . "#b58900")
      (80 . "#859900")
@@ -626,14 +625,13 @@
      (300 . "#d33682")
      (320 . "#6c71c4")
      (340 . "#dc322f")
-     (360 . "#cb4b16"))))
+     (360 . "#cb4b16")))
  '(vc-annotate-very-old-color nil)
  '(web-mode-auto-close-style 2)
  '(web-mode-enable-block-face t)
  '(web-mode-enable-engine-detection t)
  '(weechat-color-list
-   (quote
-    (unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83"))))
+   '(unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
