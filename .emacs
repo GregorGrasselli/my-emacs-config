@@ -8,7 +8,7 @@
 	("elpy" . "https://jorgenschaefer.github.io/packages/")
 	("gnu" . "http://elpa.gnu.org/packages/")))
 (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
-
+(global-unset-key (kbd "C-z"))
 (electric-indent-mode -1)
 (global-set-key (kbd "C-c <up>") 'delete-indentation)
 (setq sort-fold-case t
@@ -37,6 +37,13 @@
 (global-set-key (kbd "C-c o") 'other-frame)
 (global-set-key (kbd "C-c q") 'save-buffers-kill-emacs)
 ;; (fset 'yes-or-no-p 'y-or-n-p)
+
+;; Set default font (__1lI0Oo@)
+(set-face-attribute 'default nil
+                    :family "Fira Code"
+                    :height 110
+                    :weight 'normal
+                    :width 'normal)
 
 (set-file-name-coding-system 'utf-8)
 (xterm-mouse-mode)
@@ -88,6 +95,10 @@
 (defun copy-region-to-windows (point mark)
   (interactive "r")
   (shell-command-on-region point mark "clip.exe"))
+
+(defun paste-from-windows ()
+  (interactive)
+  (shell-command "powershell.exe Get-Clipboard" t))
 
 (use-package company
   :ensure t
@@ -405,27 +416,27 @@
 	  cider-repl-prompt-function 'cider-repl-prompt-abbreviated)))
 
 ;;; haskell
-(use-package haskell-mode
-  :ensure t
-  :defer t
-  :config
-  (use-package intero
-    :ensure t
-    :config
-    (intero-global-mode 1))
-  (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
-  (add-hook 'haskell-mode-hook 'haskell-doc-mode)
-  ;; (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
-  ;; (setq haskell-process-args-ghci
-  ;;         '("-ferror-spans" "-fshow-loaded-modules"))
-  ;; (setq haskell-process-args-cabal-repl
-  ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
-  ;; (setq haskell-process-args-stack-ghci
-  ;; 	'("--ghci-options=-ferror-spans -fshow-loaded-modules"
-  ;; 	  "--no-build" "--no-load"))
-  ;; (setq haskell-process-args-cabal-new-repl
-  ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
-  )
+;; (use-package haskell-mode
+;;   :ensure t
+;;   :defer t
+;;   :config
+;;   (use-package intero
+;;     :ensure t
+;;     :config
+;;     (intero-global-mode 1))
+;;   (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
+;;   (add-hook 'haskell-mode-hook 'haskell-doc-mode)
+;;   ;; (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+;;   ;; (setq haskell-process-args-ghci
+;;   ;;         '("-ferror-spans" "-fshow-loaded-modules"))
+;;   ;; (setq haskell-process-args-cabal-repl
+;;   ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
+;;   ;; (setq haskell-process-args-stack-ghci
+;;   ;; 	'("--ghci-options=-ferror-spans -fshow-loaded-modules"
+;;   ;; 	  "--no-build" "--no-load"))
+;;   ;; (setq haskell-process-args-cabal-new-repl
+;;   ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
+;;   )
 
 ;; (use-package ess
 ;;   :ensure t
@@ -455,7 +466,7 @@
 	  ((output-dvi style-pstricks)
 	   "dvips and gv")
 	  (output-dvi "xdvi")
-	  (output-pdf "cmd.exe ")
+	  (output-pdf "Evince")
 	  (output-html "xdg-open")))
 
   (use-package reftex
@@ -567,54 +578,64 @@
  '(ansi-color-names-vector
    ["#2d3743" "#ff4242" "#74af68" "#dbdb95" "#34cae2" "#008b8b" "#00ede1" "#e1e1e0"])
  '(beacon-color "#f2777a")
- '(compilation-message-face 'default)
+ '(compilation-message-face (quote default))
  '(cua-global-mark-cursor-color "#2aa198")
  '(cua-normal-cursor-color "#839496")
  '(cua-overwrite-cursor-color "#b58900")
  '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes '(sanityinc-tomorrow-bright))
+ '(custom-enabled-themes (quote (solarized-light-high-contrast)))
  '(custom-safe-themes
-   '("06f0b439b62164c6f8f84fdda32b62fb50b6d00e8b01c2208e55543a6337433a" "628278136f88aa1a151bb2d6c8a86bf2b7631fbea5f0f76cba2a0079cd910f7d" "bb08c73af94ee74453c90422485b29e5643b73b05e8de029a6909af6a3fb3f58" "82d2cac368ccdec2fcc7573f24c3f79654b78bf133096f9b40c20d97ec1d8016" "1b8d67b43ff1723960eb5e0cba512a2c7a2ad544ddb2533a90101fd1852b426e" "8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" default))
+   (quote
+    ("00445e6f15d31e9afaa23ed0d765850e9cd5e929be5e8e63b114a3346236c44c" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "06f0b439b62164c6f8f84fdda32b62fb50b6d00e8b01c2208e55543a6337433a" "628278136f88aa1a151bb2d6c8a86bf2b7631fbea5f0f76cba2a0079cd910f7d" "bb08c73af94ee74453c90422485b29e5643b73b05e8de029a6909af6a3fb3f58" "82d2cac368ccdec2fcc7573f24c3f79654b78bf133096f9b40c20d97ec1d8016" "1b8d67b43ff1723960eb5e0cba512a2c7a2ad544ddb2533a90101fd1852b426e" "8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" default)))
  '(elpy-modules
-   '(elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults))
- '(elpy-rpc-virtualenv-path 'current)
+   (quote
+    (elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults)))
+ '(elpy-rpc-virtualenv-path (quote current))
  '(elpy-shell-capture-last-multiline-output t)
  '(elpy-shell-echo-input nil)
  '(exec-path
-   '("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin" "/usr/lib/jvm/default/bin" "/usr/bin/site_perl" "/usr/bin/vendor_perl" "/usr/bin/core_perl" "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu" "/home/gregor/bin"))
+   (quote
+    ("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin" "/usr/lib/jvm/default/bin" "/usr/bin/site_perl" "/usr/bin/vendor_perl" "/usr/bin/core_perl" "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu" "/home/gregor/bin")))
  '(fci-rule-color "#073642")
- '(flycheck-color-mode-line-face-to-color 'mode-line-buffer-id)
- '(frame-background-mode 'dark)
+ '(flycheck-color-mode-line-face-to-color (quote mode-line-buffer-id))
+ '(frame-background-mode (quote dark))
  '(grep-command "grep --color -nH -E ")
- '(grep-find-command '("find . -type f -exec grep --color -nH -E  {} +" . 42))
+ '(grep-find-command
+   (quote
+    ("find . -type f -exec grep --color -nH -E  {} +" . 42)))
  '(grep-find-template "find <D> <X> -type f <F> -exec grep <C> -nH -E <R> {} +")
- '(grep-highlight-matches 'auto)
+ '(grep-highlight-matches (quote auto))
  '(grep-template "grep <X> <C> -nH -E <R> <F>")
  '(grep-use-null-device nil)
- '(highlight-changes-colors '("#d33682" "#6c71c4"))
+ '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
  '(highlight-symbol-colors
    (--map
     (solarized-color-blend it "#002b36" 0.25)
-    '("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2")))
+    (quote
+     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
  '(highlight-symbol-foreground-color "#93a1a1")
  '(highlight-tail-colors
-   '(("#073642" . 0)
+   (quote
+    (("#073642" . 0)
      ("#546E00" . 20)
      ("#00736F" . 30)
      ("#00629D" . 50)
      ("#7B6000" . 60)
      ("#8B2C02" . 70)
      ("#93115C" . 85)
-     ("#073642" . 100)))
+     ("#073642" . 100))))
  '(hl-bg-colors
-   '("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00"))
+   (quote
+    ("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00")))
  '(hl-fg-colors
-   '("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36"))
+   (quote
+    ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
  '(magit-diff-use-overlays nil)
  '(nxml-slash-auto-complete-flag t)
- '(org-agenda-files '("~/Documents/asistenti/code/todos.org"))
+ '(org-agenda-files (quote ("~/Documents/asistenti/code/todos.org")))
  '(org-babel-load-languages
-   '((emacs-lisp . t)
+   (quote
+    ((emacs-lisp . t)
      (shell . t)
      (awk . t)
      (haskell . t)
@@ -625,15 +646,18 @@
      (gnuplot . t)
      (latex . t)
      (calc . t)
-     (R . t)))
- '(org-export-backends '(ascii html icalendar latex md odt))
+     (R . t))))
+ '(org-export-backends (quote (ascii html icalendar latex md odt)))
  '(package-selected-packages
-   '(color-theme-sanityinc-tomorrow color-theme-solarized string-inflection projectile tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex))
+   (quote
+    (browse-kill-ring kubernetes-tramp solarized-theme csv-mode color-theme-sanityinc-tomorrow color-theme-solarized string-inflection projectile tern js2-mode move-text paradox intero indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(reftex-use-external-file-finders t)
  '(safe-local-variable-values
-   '((cider-clojure-cli-global-options . -O:default-jvm-opts)
+   (quote
+    ((TeX-engine . xetex)
+     (cider-clojure-cli-global-options . -O:default-jvm-opts)
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
      (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$")
      (cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
@@ -651,15 +675,16 @@
 	    (string=
 	     (file-name-extension buffer-file-name)
 	     "html")
-	  (web-mode))))))
- '(send-mail-function 'smtpmail-send-it)
+	  (web-mode)))))))
+ '(send-mail-function (quote smtpmail-send-it))
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
  '(typescript-indent-level 2)
  '(vc-annotate-background nil)
  '(vc-annotate-color-map
-   '((20 . "#dc322f")
+   (quote
+    ((20 . "#dc322f")
      (40 . "#cb4b16")
      (60 . "#b58900")
      (80 . "#859900")
@@ -676,20 +701,21 @@
      (300 . "#d33682")
      (320 . "#6c71c4")
      (340 . "#dc322f")
-     (360 . "#cb4b16")))
+     (360 . "#cb4b16"))))
  '(vc-annotate-very-old-color nil)
  '(web-mode-auto-close-style 2)
  '(web-mode-enable-block-face t)
  '(web-mode-enable-engine-detection t)
  '(weechat-color-list
-   '(unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83"))
+   (quote
+    (unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83")))
  '(window-divider-mode nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(flymake-error ((t (:inherit error :underline t)))))
 ;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
 ;; (require 'opam-user-setup "~/.emacs.d/opam-user-setup.el")
 ;; ## end of OPAM user-setup addition for emacs / base ## keep this line
