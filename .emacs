@@ -6,14 +6,15 @@
       '(("melpa-stable" . "https://stable.melpa.org/packages/")
 	("melpa" . "https://melpa.org/packages/")
 	("elpy" . "https://jorgenschaefer.github.io/packages/")
-	("gnu" . "http://elpa.gnu.org/packages/")))
-(add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
+	("gnu" . "http://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 
 (electric-indent-mode -1)
 (global-set-key (kbd "<M-dead-circumflex>") 'delete-indentation)
 (setq sort-fold-case t)
 (put 'narrow-to-region 'disabled nil)
 (put 'erase-buffer 'disabled nil)
+(global-unset-key (kbd "C-z"))
 
 (defun copy-buffer-file-name ()
   (interactive)
@@ -25,6 +26,7 @@
 (setq desktop-files-not-to-save "^$")
 (setq executable-prefix-env t)
 (tool-bar-mode -1)
+(scroll-bar-mode -1)
 (show-paren-mode t)
 (setq show-paren-delay 0)
 (global-set-key (kbd "C-c h") 'hl-line-mode)
@@ -53,6 +55,10 @@
 (define-coding-system-alias 'UTF-8 'utf-8)
 (define-coding-system-alias 'UTF8 'utf-8)
 
+;; completions
+(setq completions-max-height 20)
+(setq completion-auto-select 'second-tab)
+
 ;;; calendar
 (setq calendar-week-start-day 1
       holiday-general-holidays nil
@@ -72,7 +78,13 @@
       holiday-bahai-holidays nil
       holiday-hebrew-holidays nil
       holiday-islamic-holidays nil
-      holiday-oriental-holidays nil)
+      holiday-oriental-holidays nil
+      calendar-view-holidays-initially-flag nil)
+
+(use-package elfeed
+  :ensure t
+  :defer t
+  :bind ("C-x w" . elfeed))
 
 (use-package company
   :ensure t
@@ -92,29 +104,7 @@
   :config
   (move-text-default-bindings))
 
-
-(use-package multi-term
-  :ensure t
-  :bind (("C-c s" . switch-to-terminal))
-  :config
-  (defun buffer-term-mode-p (b)
-    (equal 'term-mode (buffer-local-value 'major-mode b)))
-
-  (defun switch-to-terminal (new)
-    (interactive "P")
-    (require 'seq)
-    (let ((terminals (mapcar #'buffer-name
-			     (seq-filter #'buffer-term-mode-p
-					 (buffer-list)))))
-      (if (or (not terminals) new)
-	  (multi-term)
-	(switch-to-buffer
-	   (completing-read
-	    (format "Terminal name (default %s): " (car terminals))
-	    terminals nil t nil nil (car terminals))))))
-  (setq
-   multi-term-program "/usr/bin/zsh"
-   multi-term-dedicated-select-after-open-p t))
+(use-package eat :ensure t)
 
 (use-package yasnippet
   :ensure t
@@ -131,30 +121,115 @@
 ;;   :ensure t
 ;;   :mode "\\.po\\'\\|\\.po\\.")
 
-;; direx
-(use-package direx
-  :ensure t
+(use-package dired
   :config
-  (global-set-key (kbd "C-c d d") 'direx:jump-to-directory-other-window)
-  (global-set-key (kbd "C-c d p") 'direx-project:jump-to-project-root))
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --no-group"
+	dired-recursive-copies 'always
+	dired-recursive-deletes 'always
+	wdired-allow-to-change-permissions t)
+  ;; this command is useful when you want to close the window of `dirvish-side'
+  ;; automatically when opening a file
+  (put 'dired-find-alternate-file 'disabled nil))
+
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :custom
+  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
+   '(("h" "~/"                          "Home")
+     ("d" "~/Downloads/"                "Downloads")
+     ("m" "/mnt/"                       "Drives")
+     ("e" "/sudo:root@localhost:/etc")  "Modify program settings"))
+  :config
+  ;; (dirvish-peek-mode)             ; Preview files in minibuffer
+  ;; (dirvish-side-follow-mode)      ; similar to `treemacs-follow-mode'
+  (setq dirvish-mode-line-format
+        '(:left (sort symlink) :right (omit yank index)))
+  (setq dirvish-attributes           ; The order *MATTERS* for some attributes
+        '(vc-state subtree-state nerd-icons collapse git-msg file-time file-size)
+        dirvish-side-attributes
+        '(vc-state nerd-icons collapse file-size))
+  ;; open large directory (over 20000 files) asynchronously with `fd' command
+  (setq dirvish-large-directory-threshold 20000)
+  :bind ; Bind `dirvish-fd|dirvish-side|dirvish-dwim' as you see fit
+  (("C-c f" . dirvish)
+   :map dirvish-mode-map               ; Dirvish inherits `dired-mode-map'
+   (";"   . dired-up-directory)        ; So you can adjust `dired' bindings here
+   ("?"   . dirvish-dispatch)          ; [?] a helpful cheatsheet
+   ("a"   . dirvish-setup-menu)        ; [a]ttributes settings:`t' toggles mtime, `f' toggles fullframe, etc.
+   ("f"   . dirvish-file-info-menu)    ; [f]ile info
+   ("o"   . dirvish-quick-access)      ; [o]pen `dirvish-quick-access-entries'
+   ("s"   . dirvish-quicksort)         ; [s]ort flie list
+   ("r"   . dirvish-history-jump)      ; [r]ecent visited
+   ("l"   . dirvish-ls-switches-menu)  ; [l]s command flags
+   ("v"   . dirvish-vc-menu)           ; [v]ersion control commands
+   ("*"   . dirvish-mark-menu)
+   ("y"   . dirvish-yank-menu)
+   ("N"   . dirvish-narrow)
+   ("^"   . dirvish-history-last)
+   ("TAB" . dirvish-subtree-toggle)
+   ("M-f" . dirvish-history-go-forward)
+   ("M-b" . dirvish-history-go-backward)
+   ("M-e" . dirvish-emerge-menu)))
 
 ;; projectile
 (use-package projectile
+  :after eat
   :ensure t
   :config
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  (projectile-mode +1))
+  (projectile-register-project-type 'python-poetry '("pyproject.toml")
+                                    :project-file "pyproject.toml")
+  (defun copy-buffer-file-project-name ()
+    (interactive)
+    (kill-new (file-relative-name (buffer-file-name) (projectile-project-root))))
+
+  (defun insert-file-name-and-line-number ()
+    "Insert the project file path and line number at point as `path/to/file:<line-num>'."
+    (interactive)
+    (let ((file-path (file-relative-name (buffer-file-name) (projectile-project-root)))
+          (line-number (number-to-string (line-number-at-pos))))
+      (insert (concat file-path ":" line-number))))
+
+  (defun my-projectile-project-find-function (dir)
+    (let ((root (projectile-project-root dir)))
+      (and root (cons 'transient root))))
+  (projectile-mode t)
+  (with-eval-after-load 'project
+    (add-to-list 'project-find-functions 'my-projectile-project-find-function))
+
+  (defun run-project-terminals ()
+    "Open project terminals defined in `project-terminals` dir-local, cd and run cmds."
+    (interactive)
+    (let ((terms (or (and (boundp 'project-terminals) project-terminals)
+                     (user-error "No project-terminals variable defined"))))
+      (dolist (term terms)
+        (let* ((name (car term))
+               (props (cdr term))
+               (dir (expand-file-name (plist-get props :dir) (projectile-project-root)))
+               (cmd (plist-get props :cmd))
+               (buf-name (format "*%s*" name)))
+          (let ((buf (eat-term buf-name)))
+            (with-current-buffer buf
+              (eat-send-string buf (format "cd %s\n" dir))
+              (when cmd
+                (eat-send-string buf (concat cmd "\n")))))))))
+
+  (defun projectile-run-project-or-terminals ()
+    "Run project terminals if declared, otherwise fallback to `projectile-run-project`."
+    (interactive)
+    (if (and (boundp 'project-terminals) project-terminals)
+        (run-project-terminals)
+      (projectile-run-project))))
 
 ;; dired
 (use-package dired
   :defer t
   :bind (("C-c ." . toggle-hide-hidden-files))
   :config
-  (setq dired-listing-switches "-alh"
-	dired-recursive-copies 'always
-	dired-recursive-deletes 'always
-	wdired-allow-to-change-permissions t
-	dired-dwim-target t)
+  
 
   (defun toggle-hide-hidden-files ()
     (interactive)
@@ -195,10 +270,56 @@
   (setq ispell-program-name "/usr/bin/hunspell"
 	flyspell-use-meta-tab nil))
 
+(use-package flycheck
+  :ensure t
+  :defer t
+  :config
+  (defun flycheck-parse-pylama (output checker buffer)
+    (mapcar (lambda (err)
+              (let-alist err
+                ;; Pylint can return -1 as a line or a column, hence the call to
+                ;; `max'.  See `https://github.com/flycheck/flycheck/issues/1383'.
+                (flycheck-error-new-at
+                 (and .lnum (max .lnum 1))
+                 (and .col (max (1+ .col) 1))
+                 (pcase .etype
+                   ;; See "pylint/utils.py"
+                   ((or "E" "F") 'error)
+                   ((or "I" "C") 'info)
+                   ((or "W" "R" _) 'warning))
+                 ;; Drop lines showing the error in context
+                 (and (string-match (rx (*? nonl) eol) .message)
+                      (match-string 0 .message))
+                 :checker checker
+                 :id .number
+                 :buffer buffer
+                 :group .source
+                 :filename .filename)))
+            (car (flycheck-parse-json output))))
+  (flycheck-define-checker python-pylama
+    "Pylama python syntax checker."
+    :command ("pylama" "--format" "json" source-inplace)
+    :error-parser flycheck-parse-pylama
+    :working-directory flycheck-python-find-project-root
+    :modes python-mode)
+  (add-to-list 'flycheck-checkers 'python-pylama))
+
+;;; copilot
+;; (require 'quelpa-use-package)
+;; (use-package copilot
+;;   :quelpa (copilot :fetcher github
+;;                    :repo "zerolfx/copilot.el"
+;;                    :branch "main"
+;;                    :files ("dist" "*.el"))
+;;   :bind (:map copilot-mode-map
+;;               ("<f6>" . 'copilot-accept-completion)))
 ;; Docker
 (use-package dockerfile-mode
   :ensure t
   :defer t)
+
+(use-package nix-mode
+  :ensure t)
 
 ;; markdown
 ;; copied from https://jblevins.org/projects/markdown-mode/
@@ -223,7 +344,6 @@
 
 ;; org-mode
 (use-package org
-  :ensure t
   :defer t
   :config
   (add-hook 'org-mode-hook #'auto-fill-mode)
@@ -241,7 +361,7 @@
   ;; 		 ("Figure" (:default "Slika"))
   ;; 		 ("Figure %d:" (:default "Slika %d"))
   ;; 		 ("Table" (:default "Tabela"))
-  ;; 		 ("Tabel %d" (:default "Tabela %d"))
+  ;; 		 ("Table %d" (:default "Tabela %d"))
   ;; 		 ("Table of Contents" (:default "Kazalo vsebine")))))
   ;;     (setq org-export-dictionary
   ;; 	  (mapcar (lambda (l)
@@ -260,6 +380,13 @@
   :defer t
   :ensure t)
 
+(use-package ob-mermaid
+  :defer t
+  :ensure t
+  :config
+  (setq ob-mermaid-cli-path "/usr/bin/mmdc")
+  )
+
 ;; web mode
 (use-package web-mode
   :ensure t
@@ -268,19 +395,65 @@
   (setq web-mode-engine "selmer"
 	indent-tabs-mode nil))
 
-;; rust
-(use-package rust-mode
+;; elm
+(use-package elm-mode
+  :ensure t
+  :hook ((elm-mode . elm-format-on-save-mode)
+         (elm-mode . elm-indent-mode)))
+
+
+(use-package boogie-friends
+  :ensure t
+  :config
+  (setq flycheck-dafny-executable "dafny"))
+
+;; Returns the parent directory containing a .project.el file, if any,
+;; to override the standard project.el detection logic when needed.
+
+;;; elixir
+(use-package inf-elixir
+  :ensure t
+  :defer t)
+
+(use-package elixir-ts-mode
+  :ensure t
+  :defer t
+  :requires project
+  :hook
+  (elixir-ts-mode . eglot-ensure)
+  (elixir-ts-mode . yas-minor-mode))
+
+(defun asdf-enable ()
+  "Setup asdf for environment."
+  (interactive)
+  (let ((shims-path (substitute-env-vars "$HOME/.asdf/shims"))
+        (bin-path (directory-file-name (file-name-directory (substitute-env-vars "$HOME/.asdf/bin/asdf")))))
+    (setenv "PATH" (concat shims-path ":" bin-path ":" (getenv "PATH")))
+    (setq exec-path (nconc (list shims-path bin-path) exec-path))))
+
+(asdf-enable)
+
+;; golang
+
+(use-package go-mode
   :ensure t
   :defer t
   :config
-  (use-package racer
-    :ensure t
-    :config
-    (setq racer-cmd "~/.cargo/bin/racer")
-    (setq racer-rust-src-path "~/rust/src")
-    (add-hook 'rust-mode-hook #'racer-mode))
-  (add-hook 'racer-mode-hook #'eldoc-mode)
-  (add-hook 'racer-mode-hook #'company-mode))
+  (add-hook 'go-mode-hook 'eglot-ensure)
+  (add-hook 'go-mode-hook (lambda () (setq tab-width 4))))
+
+(use-package go-playground :ensure t)
+
+
+;; rust
+(use-package rustic
+  :ensure t
+  :defer t
+  :hook
+  (rustic-mode . (lambda () (yas-minor-mode 1)))
+  :config
+  (setq rustic-lsp-client 'eglot)
+  (setq rustic-format-on-save t))
 
 ;; json
 (use-package json-mode
@@ -290,23 +463,33 @@
   (setq js-indent-level 2))
 
 ;; typescript
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (use-package tide
   :ensure t
-  :hook ((typescript-mode . tide-setup)
-         (before-save . tide-format-before-save)
-         (typescript-mode . company-mode)
-         (typescript-mode . flycheck-mode))
-  :config
-  (setq tide-tsserver-process-environment '("TSS_LOG=-level verbose -file /home/gregor/tss.log")))
+  :hook ((typescript-ts-mode . tide-setup)
+         (typescript-ts-mode . company-mode)
+         (typescript-ts-mode . flycheck-mode))
+  ;; :config
+  ;; (setq tide-tsserver-process-environment '("TSS_LOG=-level verbose -file /home/gregor/tss.log"))
+  )
 
-;; coffee script
-(use-package coffee-mode
+;; (add-to-list 'eglot-server-programs '((js-mode typescript-mode) . (eglot-deno "deno" "lsp")))
+
+;; (defclass eglot-deno (eglot-lsp-server) ()
+;;   :documentation "A custom class for deno lsp.")
+
+;; (cl-defmethod eglot-initialization-options ((server eglot-deno))
+;;   "Passes through required deno initialization options"
+;;   (list :enable t
+;;         :lint t))
+
+(use-package rescript-mode
   :ensure t
   :defer t
+  :hook ((rescript-mode . (lambda () (electric-indent-local-mode -1))))
   :config
-  (setq coffee-tab-width 2)
-  (setq coffee-indent-tabs-mode nil)
-  (setq coffee-indent-like-python-mode t))
+  (add-to-list 'eglot-server-programs
+         '(rescript-mode . ("/home/gregor/.local/npm-packages/bin/rescript-language-server" "--stdio"))))
 
 ;; paredit modifications
 (use-package paredit
@@ -319,30 +502,40 @@
 	      (define-key paredit-mode-map (kbd "M-š") 'paredit-splice-sexp))))
 
 ;; clojure
+
+(use-package cider
+  :ensure t
+  :after (clojure-mode)
+  :config
+  (add-hook 'cider-repl-mode-hook 'paredit-mode)
+
+  (defun cider-test-luminus-test-infer-ns (x)
+    (let ((parts (split-string x "\\.")))
+      (string-join `(,(car parts) "test" ,@(cdr parts)) ".")))
+
+  (setq cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]"
+	cider-test-infer-test-ns (lambda (x) (concat x "-test"))
+	cider-repl-prompt-function 'cider-repl-prompt-abbreviated))
+
+(use-package clj-refactor
+    :ensure t
+    :after (clojure-mode)
+    :config
+    (add-hook 'clojure-mode-hook 'clj-refactor-mode))
+
 (use-package clojure-mode
   :ensure t
   :defer t
   :config
   (add-hook 'clojure-mode-hook 'paredit-mode)
-  (add-hook 'clojure-mode-hook 'eldoc-mode)
+  (add-hook 'clojure-mode-hook 'eldoc-mode))
 
-  (use-package clj-refactor
-    :ensure t
-    :config
-    (add-hook 'clojure-mode-hook 'clj-refactor-mode))
-
-  (use-package cider
-    :ensure t
-    :config
-    (add-hook 'cider-repl-mode-hook 'paredit-mode)
-
-    (defun cider-test-luminus-test-infer-ns (x)
-      (let ((parts (split-string x "\\.")))
-	(string-join `(,(car parts) "test" ,@(cdr parts)) ".")))
-
-    (setq cider-doc-xref-regexp "\\[\\[\\(.*?\\)\\]\\]"
-	  cider-test-infer-test-ns (lambda (x) (concat x "-test"))
-	  cider-repl-prompt-function 'cider-repl-prompt-abbreviated)))
+(use-package eglot
+  :ensure t
+  :config
+  (add-to-list 'eglot-server-programs '(elixir-ts-mode "/home/gregor/programs/elixir-ls/elixir-ls-v0.29.2/language_server.sh"))
+  (add-to-list 'eglot-server-programs '(haskell-mode . ("/home/gregor/.ghcup/bin/haskell-language-server-wrapper" "--lsp")))
+  (setq eglot-events-buffer-size 0))
 
 ;;; haskell
 (use-package haskell-mode
@@ -350,8 +543,9 @@
   :defer t
   :config
   (add-hook 'haskell-mode-hook 'haskell-indentation-mode)
-  (add-hook 'haskell-mode-hook 'haskell-doc-mode)
-  ;; (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+  ;; (add-hook 'haskell-mode-hook 'haskell-doc-mode)
+  (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+  (add-hook 'haskell-mode-hook 'eglot-ensure)
   ;; (setq haskell-process-args-ghci
   ;;         '("-ferror-spans" "-fshow-loaded-modules"))
   ;; (setq haskell-process-args-cabal-repl
@@ -362,28 +556,65 @@
   ;; (setq haskell-process-args-cabal-new-repl
   ;; 	'("--ghc-options=-ferror-spans -fshow-loaded-modules"))
   )
+;; (use-package nix-haskell-mode
+;;   :ensure t
+;;   :hook (haskell-mode . nix-haskell-mode))
+;; (use-package lsp-mode
+;;   :ensure t
+;;   :hook (haskell-mode . lsp)
+;;   :commands lsp
+;;   :config
+;;   (setq lsp-enable-symbol-highlighting nil
+;;         lsp-lens-enable nil
+;;         lsp-headerline-breadcrumb-enable nil
+;;         lsp-keymap-prefix "C-ž")
+;;   (define-key lsp-mode-map (kbd "C-ž") lsp-command-map))
+;; (use-package lsp-ui
+;;   :ensure t
+;;   :commands lsp-ui-mode
+;;   :config
+;;   (setq lsp-ui-doc-enable nil
+;;         lsp-ui-sideline-enable nil))
+;; (use-package lsp-haskell
+;;   :ensure t
+;;   :config
+;;  (setq lsp-haskell-server-path "haskell-language-server-wrapper")
+;;  (setq lsp-haskell-server-args ())
+;;  ;; Comment/uncomment this line to see interactions between lsp client/server.
+;;  (setq lsp-log-io t))
 
-(use-package dante
-  :ensure t
-  :after haskell-mode
-  :commands 'dante-mode
-  :init
-  (add-hook 'haskell-mode-hook 'flycheck-mode)
-  (add-hook 'haskell-mode-hook 'dante-mode)
-  (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
-  :config
-  (setq flymake-no-changes-timeout nil
-	flymake-start-syntax-check-on-newline nil
-	flycheck-check-syntax-automatically '(save mode-enabled))
-  )
+;; (use-package dante
+;;   :ensure t
+;;   :after haskell-mode
+;;   :commands 'dante-mode
+;;   :init
+;;   (add-hook 'haskell-mode-hook 'flycheck-mode)
+;;   (add-hook 'haskell-mode-hook 'dante-mode)
+;;   (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+;;   :config
+;;   (setq flymake-no-changes-timeout nil
+;; 	flymake-start-syntax-check-on-newline nil
+;; 	flycheck-check-syntax-automatically '(save mode-enabled))
+;;   )
 
 (use-package ess
   :ensure t
   :defer t)
 
+(use-package eglot-jl
+  :ensure t
+  :defer t)
+
+(use-package julia-mode
+  :ensure t
+  :defer t
+  :after (eglot-jl)
+  :init
+  (eglot-jl-init))
+
 ;; latex
 (use-package tex-mode
-  :mode "\\.tex\\'"
+  :mode "\\.\\(la\\)?tex\\'"
   :ensure auctex
   :config
   (setq TeX-auto-save t)
@@ -407,6 +638,7 @@
 	  (output-dvi "xdvi")
 	  (output-pdf "Zathura")
 	  (output-html "xdg-open")))
+  (setq bibtex-dialect 'biblatex)
 
   (use-package reftex
     :config
@@ -426,12 +658,14 @@
 
 
 ;; python
+;; (add-hook 'python-mode-hook 'eglot-ensure)
 (use-package elpy
   :defer t
   :ensure t
-  :init
-  (advice-add 'python-mode :before 'elpy-enable)
+  ;; :init
+  ;; (advice-add 'python-mode :before 'elpy-enable)
   :config
+  ;; (add-hook 'python-mode-hook 'copilot-mode)
   ;; (add-hook 'python-mode-hook #'elpy-use-ipython t)
 
   (defun pipenv-enable ()
@@ -452,14 +686,20 @@
     (interactive)
     (require 'seq)
     (pyvenv-deactivate)
-    (let* ((virtual-env-python (shell-command-to-string "poetry run which python | tail -n 1"))
-	   (virtual-env (substring virtual-env-python 0 (- (length virtual-env-python) (length "/bin/python")))))
-      (pyvenv-activate virtual-env))
+    (let* ((virtual-env-python (shell-command-to-string "poetry env list | grep Activated"))
+	   (virtual-env (substring virtual-env-python 0 (- (length virtual-env-python) (length " (Activated)")))))
+      (pyvenv-activate (concat "/home/gregor/.cache/pypoetry/virtualenvs/" virtual-env "/")))
     (elpy-rpc-restart))
 
   (add-to-list
    'elpy-project-root-finder-functions
    (lambda () (locate-dominating-file default-directory "Pipfile")))
+  (add-to-list
+   'elpy-project-root-finder-functions
+   (lambda () (locate-dominating-file default-directory "pyproject.toml")))
+  (when (load "flycheck" t t)
+    (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+    (add-hook 'elpy-mode-hook 'flycheck-mode))
 
   (setq elpy-rpc-backend "jedi"
 	elpy-rpc-virtualenv-path 'current))
@@ -503,6 +743,62 @@
   (add-hook 'lisp-mode-hook 'paredit-mode))
 
 
+;;; clean up modeline
+;;; source https://www.masteringemacs.org/article/hiding-replacing-modeline-strings
+(defvar mode-line-cleaner-alist
+  `((auto-complete-mode . " α")
+    (outline-mode . " ο")
+    (projectile-mode . "")
+    (auto-revert-mode . "")
+    (yas/minor-mode . " υ")
+    (paredit-mode . " π")
+    (eldoc-mode . "")
+    (abbrev-mode . "")
+    (interactive-haskell-mode . "")
+    (highlight-indentation-mode . "")
+    ;; Major modes
+    (lisp-interaction-mode . "λ")
+    (hi-lock-mode . "")
+    (python-mode . "Py")
+    (elpy-mode . "")
+    (haskell-mode . "Hs")
+    (company-mode . "")
+    (lsp-mode . "")
+    (emacs-lisp-mode . "EL")
+    (web-mode . "web")))
+
+
+(defun clean-mode-line ()
+  (interactive)
+  (cl-loop for cleaner in mode-line-cleaner-alist
+        do (let* ((mode (car cleaner))
+                 (mode-str (cdr cleaner))
+                 (old-mode-str (cdr (assq mode minor-mode-alist))))
+             (when old-mode-str
+                 (setcar old-mode-str mode-str))
+               ;; major mode
+             (when (eq mode major-mode)
+               (setq mode-name mode-str)))))
+
+
+(add-hook 'after-change-major-mode-hook 'clean-mode-line)
+
+;;; alias the new `flymake-report-status-slim' to
+;;; `flymake-report-status'
+;; (defalias 'flymake-report-status 'flymake-report-status-slim)
+;; (defun flymake-report-status-slim (e-w &optional status)
+;;   "Show \"slim\" flymake status in mode line."
+;;   (when e-w
+;;     (setq flymake-mode-line-e-w e-w))
+;;   (when status
+;;     (setq flymake-mode-line-status status))
+;;   (let* ((mode-line " Φ"))
+;;     (when (> (length flymake-mode-line-e-w) 0)
+;;       (setq mode-line (concat mode-line ":" flymake-mode-line-e-w)))
+;;     (setq mode-line (concat mode-line flymake-mode-line-status))
+;;     (setq flymake-mode-line mode-line)
+;;     (force-mode-line-update)))
+
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -512,126 +808,164 @@
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(ansi-color-for-comint-mode t)
- '(ansi-color-names-vector
-   ["#2d3743" "#ff4242" "#74af68" "#dbdb95" "#34cae2" "#008b8b" "#00ede1" "#e1e1e0"])
  '(compilation-message-face 'default)
+ '(csv-separators '("," "\11" ";"))
  '(cua-global-mark-cursor-color "#2aa198")
  '(cua-normal-cursor-color "#839496")
  '(cua-overwrite-cursor-color "#b58900")
  '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes '(sanityinc-solarized-dark))
+ '(custom-enabled-themes '(zenburn))
  '(custom-safe-themes
-   '("4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" default))
+   '("09b833239444ac3230f591e35e3c28a4d78f1556b107bafe0eb32b5977204d93"
+     "9fb561389e5ac5b9ead13a24fb4c2a3544910f67f12cfcfe77b75f36248017d0"
+     "f079ef5189f9738cf5a2b4507bcaf83138ad22d9c9e32a537d61c9aae25502ef"
+     "18cf5d20a45ea1dff2e2ffd6fbcd15082f9aa9705011a3929e77129a971d1cb3"
+     "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4"
+     "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328"
+     "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0"
+     "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
+     default))
+ '(diff-switches '("-u" "--color='never'"))
+ '(dired-guess-shell-alist-user
+   '(("\\.epub\\'" "zathura &") ("\\.pdf\\'" "zathura &")
+     ("\\.docx?\\'" "lowriter &")))
+ '(eglot-confirm-server-edits nil)
+ '(elfeed-feeds '("https://clojure.org/feed.xml"))
  '(elpy-modules
-   '(elpy-module-company elpy-module-eldoc elpy-module-flymake elpy-module-pyvenv elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-sane-defaults))
+   '(elpy-module-company elpy-module-eldoc elpy-module-pyvenv
+                         elpy-module-highlight-indentation
+                         elpy-module-yasnippet
+                         elpy-module-sane-defaults))
  '(elpy-rpc-virtualenv-path 'current)
  '(elpy-shell-capture-last-multiline-output t)
  '(elpy-shell-echo-input nil)
  '(exec-path
-   '("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin" "/usr/lib/jvm/default/bin" "/usr/bin/site_perl" "/usr/bin/vendor_perl" "/usr/bin/core_perl" "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu" "/home/gregor/bin"))
- '(fci-rule-color "#073642")
+   '("/usr/local/bin" "/usr/bin" "/bin" "/usr/local/sbin"
+     "/usr/lib/jvm/default/bin" "/usr/bin/site_perl"
+     "/usr/bin/vendor_perl" "/usr/bin/core_perl"
+     "/home/gregor/.rvm/bin" "/usr/lib/emacs/26.1/x86_64-pc-linux-gnu"
+     "/home/gregor/bin"))
  '(grep-command "grep --color -nH -E ")
  '(grep-find-command '("find . -type f -exec grep --color -nH -E  {} +" . 42))
+ '(grep-find-ignored-directories
+   '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN"
+     "_darcs" "{arch}" ".pytest_cache" ".mypy_cache"
+     "bitsuisse.egg-info"))
  '(grep-find-template "find <D> <X> -type f <F> -exec grep <C> -nH -E <R> {} +")
  '(grep-highlight-matches 'auto)
  '(grep-template "grep <X> <C> -nH -E <R> <F>")
  '(grep-use-null-device nil)
  '(highlight-changes-colors '("#d33682" "#6c71c4"))
  '(highlight-symbol-colors
-   (--map
-    (solarized-color-blend it "#002b36" 0.25)
-    '("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2")))
+   (--map (solarized-color-blend it "#002b36" 0.25)
+          '("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900"
+            "#cb4b16" "#268bd2")))
  '(highlight-symbol-foreground-color "#93a1a1")
  '(highlight-tail-colors
-   '(("#073642" . 0)
-     ("#546E00" . 20)
-     ("#00736F" . 30)
-     ("#00629D" . 50)
-     ("#7B6000" . 60)
-     ("#8B2C02" . 70)
-     ("#93115C" . 85)
+   '(("#073642" . 0) ("#546E00" . 20) ("#00736F" . 30) ("#00629D" . 50)
+     ("#7B6000" . 60) ("#8B2C02" . 70) ("#93115C" . 85)
      ("#073642" . 100)))
  '(hl-bg-colors
-   '("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00"))
+   '("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D"
+     "#00736F" "#546E00"))
  '(hl-fg-colors
-   '("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36"))
+   '("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36"
+     "#002b36" "#002b36"))
  '(magit-diff-use-overlays nil)
+ '(magit-repository-directories
+   '(("/home/gregor/Documents/sluzba/blueoceangaming/" . 1)
+     ("/home/gregor/Documents/projekti/" . 1)
+     ("/home/gregor/Documents/Mucek/" . 1)))
  '(mode-line-format
-   '("%e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote mode-line-frame-identification mode-line-buffer-identification "   " mode-line-position "  " mode-line-modes mode-line-misc-info mode-line-end-spaces))
+   '("%e" mode-line-front-space mode-line-mule-info mode-line-client
+     mode-line-modified mode-line-remote
+     mode-line-frame-identification mode-line-buffer-identification
+     "   " mode-line-position "  " mode-line-modes mode-line-misc-info
+     mode-line-end-spaces))
  '(nxml-slash-auto-complete-flag t)
- '(org-agenda-files '("~/Documents/asistenti/code/todos.org"))
+ '(org-agenda-files
+   '("/home/gregor/Documents/sluzba/blueoceangaming/temp/todos.org"
+     "/home/gregor/Documents/personal/calendar.org"))
  '(org-babel-load-languages
-   '((emacs-lisp . t)
-     (shell . t)
-     (awk . t)
-     (haskell . t)
-     (clojure . t)
-     (dot . t)
-     (python . t)
-     (ruby . t)
-     (gnuplot . t)
-     (latex . t)
-     (calc . t)
-     (R . t)))
- '(org-export-backends '(ascii html icalendar latex md odt))
+   '((emacs-lisp . t) (shell . t) (awk . t) (haskell . t) (elixir . t)
+     (clojure . t) (dot . t) (python . t) (ruby . t) (gnuplot . t)
+     (calc . t) (R . t) (mermaid . t)))
+ '(org-export-backends '(ascii html latex md odt))
  '(package-selected-packages
-   '(groovy-mode json-mode tide gnuplot intero dante string-inflection projectile tern js2-mode move-text paradox indium color-theme-sanityinc-solarized po-mode gettext multi-term company-tern use-package js2-refactor xref-js2 ess clj-refactor page-break-lines paredit hippie-expand-slime slime inf-ruby rvm company-go haml-mode docker docker-tramp dockerfile-mode cargo racer rust-mode rust-playground web-mode web-mode-edit-element markdown-mode cider haskell-mode merlin iedit auto-complete utop yaml-mode coffee-mode magit direx cdlatex elpy smex))
+   '(async auto-complete boogie-friends browse-kill-ring cargo cdlatex
+           cider clj-refactor clojure-snippets
+           color-theme-sanityinc-solarized company-go company-tern
+           copilot csv-mode dante dirvish docker dockerfile-mode eat
+           editorconfig eglot-jl elfeed elixir-ts-mode
+           elixir-yasnippets elm-mode elm-yasnippets elpy ess exercism
+           gettext gnuplot go-mode go-playground graphviz-dot-mode
+           groovy-mode haml-mode haskell-mode haskell-snippets
+           hippie-expand-slime iedit indium inf-elixir inf-ruby intero
+           js2-mode js2-refactor json-mode julia-mode lsp-mode magit
+           markdown-mode merlin mermaid-mode move-text nerd-icons
+           nix-haskell-mode nix-mode nix-update nixpkgs-fmt
+           nushell-mode ob-elixir ob-mermaid page-break-lines paradox
+           paredit po-mode projectile py-snippets quelpa
+           quelpa-use-package rescript-mode rust-mode rust-playground
+           rustic rvm slime smartparens-mode smex string-inflection
+           tern tide use-package utop web-mode web-mode-edit-element
+           websocket xref-js2 yaml-mode yasnippet-classic-snippets
+           yasnippet-snippets zenburn-theme))
+ '(paradox-github-token t)
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
+ '(project-vc-extra-root-markers '("mix.exs"))
  '(reftex-use-external-file-finders t)
+ '(rust-indent-offset 4)
  '(safe-local-variable-values
-   '((case-fold-search)
-     (ispell-dictionary . slovenian)
+   '((ispell-local-dictionary . sl_SI) (web-mode-engine . "elixir")
+     (org-todo-keywords (sequence "TODO" "IN_PROGRESS" "|" "DONE"))
+     (org-todo-keywords (sequence "TODO" "IN PROGRESS" "|" "DONE"))
+     (org-todo-keywords quote
+                        ((sequence "TODO" "IN PROGRESS" "|" "DONE")))
+     (flycheck-checker . python-pylama)
+     (flycheck-select-checker . python-pylama)
+     (ispell-local-dictionary . slovenian)
+     (org-todo-keywords sequence "TODO" "REFINEMENT REVIEW" "|"
+                        "READY" "DONE")
+     (org-todo-keywords quote
+                        ((sequence "TODO" "REFINEMENT REVIEW" "|"
+                                   "READY" "DONE")))
+     (case-fold-search) (ispell-dictionary . slovenian)
      (cider-clojure-cli-global-options . -O:default-jvm-opts)
-     (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$" "Session" "Random" "Template")
-     (js2-additional-externs "Meteor" "Tracker" "FlowRouter" "RocketChat" "$")
-     (cider-cljs-lein-repl . "(do (require 'figwheel-sidecar.repl-api)
-         (figwheel-sidecar.repl-api/start-figwheel!)
-         (figwheel-sidecar.repl-api/cljs-repl))")
-     (cider-cljs-lein-repl . "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
-     (web-mode-engine . selmer)
-     (web-mode-engine . django)
-     (web-mode-engine . "django")
-     (engine . "selmer")
+     (js2-additional-externs "Meteor" "Tracker" "FlowRouter"
+                             "RocketChat" "$" "Session" "Random"
+                             "Template")
+     (js2-additional-externs "Meteor" "Tracker" "FlowRouter"
+                             "RocketChat" "$")
+     (cider-cljs-lein-repl
+      . "(do (require 'figwheel-sidecar.repl-api)\12         (figwheel-sidecar.repl-api/start-figwheel!)\12         (figwheel-sidecar.repl-api/cljs-repl))")
+     (cider-cljs-lein-repl
+      . "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
+     (web-mode-engine . selmer) (web-mode-engine . django)
+     (web-mode-engine . "django") (engine . "selmer")
      (web-mode-engine . "selmer")
      (eval
       (lambda nil
-        (when
-            (string=
-             (file-name-extension buffer-file-name)
-             "html")
+        (when (string= (file-name-extension buffer-file-name) "html")
           (web-mode))))))
  '(send-mail-function 'smtpmail-send-it)
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
+ '(split-height-threshold 100)
+ '(split-width-threshold 200)
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
  '(typescript-indent-level 2)
- '(vc-annotate-background nil)
- '(vc-annotate-color-map
-   '((20 . "#dc322f")
-     (40 . "#cb4b16")
-     (60 . "#b58900")
-     (80 . "#859900")
-     (100 . "#2aa198")
-     (120 . "#268bd2")
-     (140 . "#d33682")
-     (160 . "#6c71c4")
-     (180 . "#dc322f")
-     (200 . "#cb4b16")
-     (220 . "#b58900")
-     (240 . "#859900")
-     (260 . "#2aa198")
-     (280 . "#268bd2")
-     (300 . "#d33682")
-     (320 . "#6c71c4")
-     (340 . "#dc322f")
-     (360 . "#cb4b16")))
- '(vc-annotate-very-old-color nil)
  '(web-mode-auto-close-style 2)
  '(web-mode-enable-block-face t)
  '(web-mode-enable-engine-detection t)
  '(weechat-color-list
-   '(unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83")))
+   '(unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00"
+                 "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2"
+                 "#93115C" "#d33682" "#00736F" "#2aa198" "#839496"
+                 "#657b83"))
+ '(windmove-swap-states-default-keybindings '([ignore] control shift))
+ '(windmove-wrap-around t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -645,3 +979,4 @@
 (put 'scroll-left 'disabled nil)
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
+(put 'dired-find-alternate-file 'disabled nil)
